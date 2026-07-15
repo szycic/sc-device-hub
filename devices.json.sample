@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Tuya Outlet",
+    "type": "tuya_outlet",
+    "ip_address": "<tuya_outlet_ip_address>",
+    "tuya_device_id": "<tuya_device_id>"
+  },
+  {
+    "name": "Local Ping Device",
+    "type": "ping_device",
+    "ip_address": "127.0.0.1"
+  }
+]
