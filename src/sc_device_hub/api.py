@@ -71,7 +71,6 @@ async def _tcp_probe(host: str, timeout_seconds: float) -> tuple[bool, str]:
 def _tuya_from_device(device: Device) -> TuyaDevice:
   return TuyaDevice(
     name=device.name,
-    ip_address=device.ip_address,
     tuya_device_id=device.tuya_device_id,
     is_on=device.is_on,
   )

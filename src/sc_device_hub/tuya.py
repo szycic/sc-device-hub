@@ -17,32 +17,46 @@ if not TUYA_ACCESS_ID or not TUYA_ACCESS_KEY:
 class TuyaControlError(RuntimeError):
   pass
 
-
-@dataclass(slots=True)
-class TuyaDevice:
-  name: str
-  ip_address: str | None = None
-  tuya_device_id: str | None = None
-  is_on: bool = False
-  
-  def connect(self) -> tinytuya.Cloud:
-    if not self.ip_address:
-      raise TuyaControlError("ip_address is required for Tuya controls")
-    if not self.tuya_device_id:
-      raise TuyaControlError("tuya_device_id is required for Tuya controls")
-
-    cloud = tinytuya.Cloud(
+class TuyaClient:
+  def __init__(self) -> None:
+    self.cloud = tinytuya.Cloud(
       "eu",
       TUYA_ACCESS_ID,
       TUYA_ACCESS_KEY
     )
     
-    return cloud
+  def status(self, device_id: str) -> dict:
+    return self.cloud.getstatus(device_id)
+  
+  def command(
+    self,
+    device_id: str,
+    code: str,
+    value: bool,
+  ) -> dict:
+    return self.cloud.sendcommand(
+      device_id,
+      {
+        "commands": [
+          {
+            "code": code,
+            "value": value,
+          }
+        ]
+      },
+    )
+    
+tuya = TuyaClient()
+
+@dataclass(slots=True)
+class TuyaDevice:
+  name: str
+  tuya_device_id: str
+  is_on: bool = False
   
   def refresh(self) -> bool:
-    cloud = self.connect()
     try:
-      status = cloud.getstatus(self.tuya_device_id)
+      status = tuya.status(self.tuya_device_id)
       
       for item in status.get("result", []):
         if item.get("code") == "switch_1":
@@ -54,55 +68,24 @@ class TuyaDevice:
     except Exception as exc:
       raise TuyaControlError(f"Failed to refresh {self.name}: {exc}") from exc
 
-  def turn_on(self) -> str:
-    cloud = self.connect()
-    
+  def set_state(self, state: bool) -> str:
     try:
-      command = cloud.sendcommand(
-        self.tuya_device_id,
-        {
-          "commands": [
-            {
-              "code": "switch_1",
-              "value": True
-            }
-          ]
-        }
-      )
+      command = tuya.command(self.tuya_device_id, "switch_1", state)
+      
       if not command.get("success"):
-        raise TuyaControlError(f"Failed to turn on {self.name}: {command.get('msg', 'Unknown error')}")
-      return f"{self.name} turned on"
+        raise TuyaControlError(f"Failed to set state for {self.name}: {command.get('msg', 'Unknown error')}")
+      
+      return f"{self.name} turned {'on' if state else 'off'}"
+    
     except Exception as exc:
-      raise TuyaControlError(f"Failed to turn on {self.name}: {exc}") from exc
+      raise TuyaControlError(f"Failed to set state for {self.name}: {exc}") from exc
+    
+  def turn_on(self) -> str:
+    return self.set_state(True)
 
   def turn_off(self) -> str:
-    cloud = self.connect()
-    try:
-      command = cloud.sendcommand(
-        self.tuya_device_id,
-        {
-          "commands": [
-            {
-              "code": "switch_1",
-              "value": False
-            }
-          ]
-        }
-      )
-      if not command.get("success"):
-        raise TuyaControlError(f"Failed to turn off {self.name}: {command.get('msg', 'Unknown error')}")
-      return f"{self.name} turned off"
-    except Exception as exc:
-      raise TuyaControlError(f"Failed to turn off {self.name}: {exc}") from exc
+    return self.set_state(False)
 
   def toggle(self) -> str:
-    try:
-      self.refresh()
-      
-      if self.is_on:
-        return self.turn_off()
-      else:
-        return self.turn_on()
-      
-    except Exception as exc:
-      raise TuyaControlError(f"Failed to toggle {self.name}: {exc}") from exc
+    self.refresh()
+    return self.turn_off() if self.is_on else self.turn_on()
