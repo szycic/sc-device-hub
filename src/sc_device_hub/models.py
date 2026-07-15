@@ -102,8 +102,7 @@ def seed_devices() -> None:
         "name": "Tuya Outlet",
         "type": "tuya_outlet",
         "ip_address": "<tuya_outlet_ip_address>",
-        "tuya_device_id": "<tuya_device_id>",
-        "tuya_local_key": "<tuya_local_key>"
+        "tuya_device_id": "<tuya_device_id>"
       },
       {
         "name": "Local Ping Device",

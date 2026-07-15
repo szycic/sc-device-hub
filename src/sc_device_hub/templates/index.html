@@ -1,174 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Device Hub</title>
-    <link rel="icon" href="/static/favicon.ico" />
-    <link rel="stylesheet" href="/static/style.css" />
-  </head>
-  <body>
-    <main class="shell">
-      <section class="hero card">
-        <div>
-          <p class="eyebrow">FastAPI dashboard</p>
-          <h1>Device Hub</h1>
-          <p class="lede">
-            Monitor reachability and wire Tuya outlets into a single dashboard.
-          </p>
-        </div>
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-label">Devices</span>
-            <strong id="device-count">{{ devices | length }}</strong>
-          </div>
-        </div>
-      </section>
 
-      <section class="grid">
-        <article class="card panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Fleet status</p>
-              <h2>Current devices</h2>
-            </div>
-            <button id="refresh-all" class="secondary" type="button">Refresh all</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Device Hub</title>
+  <link rel="icon" href="/static/favicon.ico" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <main class="shell">
+    <section class="hero card">
+      <div>
+        <p class="eyebrow">FastAPI dashboard</p>
+        <h1>Device Hub</h1>
+        <p class="lede">
+          Monitor reachability and wire Tuya outlets into a single dashboard.
+        </p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-label">Devices</span>
+          <strong id="device-count">{{ devices | length }}</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Last global refresh</span>
+          <strong id="last-refresh" class="stat-refresh">—</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Fleet status</p>
+            <h2>Current devices</h2>
           </div>
-          <div id="message" class="message"></div>
-          <div id="device-list" class="device-list"></div>
-        </article>
-      </section>
-    </main>
-    
-    <template id="device-template">
-      <section class="device-row">
-        <div class="device-main">
-          <div class="device-title-row">
-            <h3 class="device-name"></h3>
+          <button id="refresh-all" class="secondary" type="button">Refresh all</button>
+        </div>
+        <div id="message" class="message"></div>
+        <div id="device-list" class="device-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <template id="device-template">
+    <section class="device-row">
+      <div class="device-main">
+        <div class="device-title-row">
+          <h3 class="device-name"></h3>
+          <div class="device-badges">
+            <span class="badge device-type-badge"></span>
             <span class="badge device-state"></span>
+            <span class="badge device-status" hidden></span>
           </div>
-          <p class="device-id"></p>
-          <p class="device-meta"></p>
-          <p class="device-note"></p>
         </div>
-        <div class="device-actions">
-          <button type="button" class="secondary refresh-action">Refresh</button>
-          <button type="button" class="secondary ping-action">Ping</button>
-          <button type="button" class="primary toggle-action">Toggle</button>
-        </div>
-      </section>
-    </template>
+        <p class="device-id"></p>
+        <p class="device-meta"></p>
+        <p class="device-note"></p>
+      </div>
+      <div class="device-actions">
+        <button type="button" class="secondary refresh-action">Refresh</button>
+        <button type="button" class="secondary ping-action">Ping</button>
+        <button type="button" class="primary toggle-action">Toggle</button>
+      </div>
+    </section>
+  </template>
 
 
-    <script>
-      const deviceList = document.getElementById('device-list');
-      const deviceTemplate = document.getElementById('device-template');
-      const message = document.getElementById('message');
-      const deviceCount = document.getElementById('device-count');
-      const refreshAllButton = document.getElementById('refresh-all');
+  <script>
+    const deviceList = document.getElementById('device-list');
+    const deviceTemplate = document.getElementById('device-template');
+    const message = document.getElementById('message');
+    const deviceCount = document.getElementById('device-count');
+    const lastRefresh = document.getElementById('last-refresh');
+    const refreshAllButton = document.getElementById('refresh-all');
 
-      const stateLabels = {
-        online: 'Online',
-        offline: 'Offline',
-        unknown: 'Unknown',
-      };
+    const stateLabels = {
+      online: 'Online',
+      offline: 'Offline',
+      unknown: 'Unknown',
+    };
 
-      function showMessage(text, kind = 'info') {
-        message.textContent = text;
-        message.dataset.kind = kind;
+    const statusBadgeRenderers = {
+      tuya_outlet: (device) => ({
+        text: device.is_on ? 'On' : 'Off',
+        key: device.is_on ? 'on' : 'off',
+      }),
+      // ping_device: () => null,   // example: uncomment + fill in to add later
+      // manual: () => null,
+    };
+
+    function showMessage(text, kind = 'info') {
+      message.textContent = text;
+      message.dataset.kind = kind;
+    }
+
+    function renderDevice(device) {
+      const node = deviceTemplate.content.cloneNode(true);
+      const row = node.querySelector('.device-row');
+      const name = node.querySelector('.device-name');
+      const id = node.querySelector('.device-id');
+      const state = node.querySelector('.device-state');
+      const status = node.querySelector('.device-status');
+      const typeBadge = node.querySelector('.device-type-badge');
+      const meta = node.querySelector('.device-meta');
+      const note = node.querySelector('.device-note');
+      const refreshAction = node.querySelector('.refresh-action');
+      const pingAction = node.querySelector('.ping-action');
+      const toggleAction = node.querySelector('.toggle-action');
+
+      function formatLastSeen(isoString) {
+        if (!isoString) return null;
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return null;
+        return `Last seen: ${date.toLocaleTimeString()}`;
       }
 
-      function renderDevice(device) {
-        const node = deviceTemplate.content.cloneNode(true);
-        const row = node.querySelector('.device-row');
-        const name = node.querySelector('.device-name');
-        const id = node.querySelector('.device-id');
-        const state = node.querySelector('.device-state');
-        const meta = node.querySelector('.device-meta');
-        const note = node.querySelector('.device-note');
-        const refreshAction = node.querySelector('.refresh-action');
-        const pingAction = node.querySelector('.ping-action');
-        const toggleAction = node.querySelector('.toggle-action');
+      name.textContent = device.name;
+      id.textContent = device.id;
+      state.textContent = stateLabels[device.state] || device.state;
+      state.dataset.state = device.state;
+      typeBadge.textContent = device.type.replace(/_/g, ' ');
+      typeBadge.dataset.type = device.type;
 
-        name.textContent = device.name;
-        id.textContent = device.id;
-        state.textContent = stateLabels[device.state] || device.state;
-        state.dataset.state = device.state;
-        meta.textContent = [device.type.replace('_', ' '), device.ip_address ? `IP: ${device.ip_address}` : 'No IP configured'].join(' • ');
-        note.textContent = device.last_message || device.last_action || 'No recent activity';
+      const metaParts = [
+        device.ip_address ? `IP: ${device.ip_address}` : 'No IP configured'
+      ];
+      const lastSeenStr = formatLastSeen(device.last_seen);
+      if (lastSeenStr) {
+        metaParts.push(lastSeenStr);
+      }
+      meta.textContent = metaParts.join(' • ');
 
-        pingAction.hidden = !device.ip_address;
-        toggleAction.hidden = !device.can_toggle;
+      note.textContent = device.last_message || device.last_action || 'No recent activity';
 
-        pingAction.addEventListener('click', async () => {
-          await performAction(`/api/v1/devices/${device.id}/ping`, `${device.name} pinged`);
-        });
-
-        refreshAction.addEventListener('click', async () => {
-          await performAction(`/api/v1/devices/${device.id}/refresh`, `${device.name} status refreshed`);
-        });
-
-        if (device.can_toggle) {
-          toggleAction.addEventListener('click', async () => {
-            await performAction(`/api/v1/devices/${device.id}/toggle`, `${device.name} toggled`);
-          });
-        }
-
-        row.dataset.deviceId = device.id;
-        return node;
+      const renderer = statusBadgeRenderers[device.type];
+      const statusInfo = renderer ? renderer(device) : null;
+      if (statusInfo) {
+        status.textContent = statusInfo.text;
+        status.dataset.statusKey = statusInfo.key;
+        status.hidden = false;
+      } else {
+        status.hidden = true;
       }
 
-      async function loadDevices() {
-        const response = await fetch('/api/v1/devices');
+      pingAction.hidden = !device.ip_address;
+      toggleAction.hidden = !device.can_toggle;
+
+      row.dataset.state = device.state;
+
+      pingAction.addEventListener('click', async () => {
+        await performAction(`/api/v1/devices/${device.id}/ping`, `${device.name} pinged`, pingAction);
+      });
+
+      refreshAction.addEventListener('click', async () => {
+        await performAction(`/api/v1/devices/${device.id}/refresh`, `${device.name} status refreshed`, refreshAction);
+      });
+
+      if (device.can_toggle) {
+        const TOGGLE_SETTLE_MS = 1500;
+
+        toggleAction.addEventListener('click', async () => {
+          const originalText = toggleAction.textContent;
+          try {
+            toggleAction.disabled = true;
+            toggleAction.textContent = '...';
+
+            const toggleRes = await fetch(`/api/v1/devices/${device.id}/toggle`, { method: 'POST' });
+            const togglePayload = await toggleRes.json();
+            if (!toggleRes.ok) throw new Error(togglePayload.detail || 'Toggle failed');
+
+            showMessage(`${device.name} toggled – refreshing…`, 'info');
+            await new Promise((resolve) => setTimeout(resolve, TOGGLE_SETTLE_MS));
+            await fetch(`/api/v1/devices/${device.id}/refresh`, { method: 'POST' });
+
+            showMessage(`${device.name} toggled`, 'success');
+            await loadDevices();
+          } catch (error) {
+            showMessage(error.message, 'error');
+            toggleAction.disabled = false;
+            toggleAction.textContent = originalText;
+          }
+        });
+      }
+
+      row.dataset.deviceId = device.id;
+      return node;
+    }
+
+    async function loadDevices() {
+      const response = await fetch('/api/v1/devices');
+      if (!response.ok) {
+        throw new Error('Unable to load devices');
+      }
+      const devices = await response.json();
+      deviceList.innerHTML = '';
+      devices.forEach((device) => {
+        deviceList.appendChild(renderDevice(device));
+      });
+      deviceCount.textContent = String(devices.length);
+      return devices;
+    }
+
+    async function performAction(url, successMessage, button = null) {
+      const originalText = button ? button.textContent : '';
+      if (button) {
+        button.disabled = true;
+        button.textContent = '...';
+      }
+      try {
+        const response = await fetch(url, { method: 'POST' });
+        const payload = await response.json();
         if (!response.ok) {
-          throw new Error('Unable to load devices');
+          throw new Error(payload.detail || 'Action failed');
+        }
+        showMessage(successMessage, 'success');
+        await loadDevices();
+      } catch (error) {
+        showMessage(error.message, 'error');
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      }
+    }
+
+    async function refreshAllDevices() {
+      const originalText = refreshAllButton.textContent;
+      try {
+        refreshAllButton.disabled = true;
+        refreshAllButton.textContent = 'Refreshing...';
+        
+        const response = await fetch('/api/v1/devices/refresh', { method: 'POST' });
+        if (!response.ok) {
+          throw new Error('Global refresh failed');
         }
         const devices = await response.json();
+        
         deviceList.innerHTML = '';
         devices.forEach((device) => {
           deviceList.appendChild(renderDevice(device));
         });
         deviceCount.textContent = String(devices.length);
-        return devices;
+        
+        lastRefresh.textContent = new Date().toLocaleTimeString();
+        showMessage('Refreshed reachable devices', 'success');
+      } catch (error) {
+        showMessage(error.message, 'error');
+      } finally {
+        refreshAllButton.disabled = false;
+        refreshAllButton.textContent = originalText;
       }
+    }
 
-      async function performAction(url, successMessage) {
-        try {
-          const response = await fetch(url, { method: 'POST' });
-          const payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload.detail || 'Action failed');
-          }
-          showMessage(successMessage, 'success');
-          await loadDevices();
-        } catch (error) {
-          showMessage(error.message, 'error');
-        }
-      }
+    refreshAllButton.addEventListener('click', async () => {
+      await refreshAllDevices();
+    });
 
-      async function refreshAllDevices() {
-        try {
-          const devices = await loadDevices();
-          await Promise.all(
-            devices.map(async (device) => {
-              if (device.ip_address) {
-                await fetch(`/api/v1/devices/${device.id}/refresh`, { method: 'POST' });
-              }
-            }),
-          );
-          await loadDevices();
-          showMessage('Refreshed reachable devices', 'success');
-        } catch (error) {
-          showMessage(error.message, 'error');
-        }
-      }
+    const AUTO_REFRESH_MS = 60_000;
 
-      refreshAllButton.addEventListener('click', async () => {
-        await refreshAllDevices();
-      });
+    loadDevices().catch((error) => showMessage(error.message, 'error'));
+    refreshAllDevices().catch((error) => showMessage(error.message, 'error'));
 
-      loadDevices().catch((error) => showMessage(error.message, 'error'));
-      refreshAllDevices().catch((error) => showMessage(error.message, 'error'));
-    </script>
-  </body>
+    setInterval(() => {
+      refreshAllDevices().catch(() => {/* silent – don't disrupt the user on background failures */ });
+    }, AUTO_REFRESH_MS);
+  </script>
+</body>
+
 </html>
