@@ -43,7 +43,7 @@ function renderDevice(device) {
     if (!isoString) return null;
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return null;
-    return `Last seen: ${date.toLocaleTimeString()}`;
+    return `Last seen: ${date.toLocaleTimeString(undefined, { hour12: false })}`;
   }
 
   name.textContent = device.name;
@@ -173,7 +173,7 @@ async function refreshAllDevices() {
     });
     deviceCount.textContent = String(devices.length);
 
-    lastRefresh.textContent = new Date().toLocaleTimeString();
+    lastRefresh.textContent = new Date().toLocaleTimeString(undefined, { hour12: false });
     showMessage('Refreshed reachable devices', 'success');
   } catch (error) {
     showMessage(error.message, 'error');
