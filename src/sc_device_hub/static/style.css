@@ -1,3 +1,4 @@
+/* Design System Variables & Layout Defaults */
 :root {
   color-scheme: dark;
   --bg: #08111f;
@@ -218,6 +219,7 @@ button:disabled {
   color: var(--error);
 }
 
+/* Device Rows and Dashboard Layout */
 .device-list {
   display: grid;
   gap: 14px;

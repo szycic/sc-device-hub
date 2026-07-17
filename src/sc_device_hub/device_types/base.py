@@ -1,3 +1,6 @@
+"""
+Abstract base protocols defining the interface for device handlers.
+"""
 from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable

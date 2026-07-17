@@ -24,6 +24,10 @@ class DeviceStatus(str, Enum):
 
 @dataclass(slots=True)
 class Device:
+  """
+  Data model representing a device in the hub, containing its details,
+  reachability status, and power state.
+  """
   name: str
   type: DeviceType
   ip_address: str | None = None
@@ -36,6 +40,9 @@ class Device:
   id: str = field(default_factory=lambda: uuid.uuid4().hex)
 
   def to_payload(self) -> dict[str, Any]:
+    """
+    Serialize the Device model instance to a JSON-compatible dictionary payload.
+    """
     payload = asdict(self)
     payload["type"] = self.type.value
     payload["status"] = self.status.value
@@ -44,27 +51,45 @@ class Device:
 
   @property
   def can_toggle(self) -> bool:
+    """
+    Determine if this device type supports power toggling commands.
+    """
     return self.type is DeviceType.tuya_outlet
 
 
 class DeviceStore:
+  """
+  An in-memory store for managing device models.
+  """
   def __init__(self) -> None:
     self._devices: dict[str, Device] = {}
 
   def list(self) -> list[Device]:
+    """
+    List all devices registered in the store.
+    """
     return list(self._devices.values())
 
   def get(self, device_id: str) -> Device:
+    """
+    Retrieve a specific device by its ID.
+    """
     try:
       return self._devices[device_id]
     except KeyError as exc:
       raise KeyError(device_id) from exc
 
   def add(self, device: Device) -> Device:
+    """
+    Add a new device to the store.
+    """
     self._devices[device.id] = device
     return device
 
   def update(self, device_id: str, **changes: Any) -> Device:
+    """
+    Update field values on a registered device in the store.
+    """
     device = self.get(device_id)
     for key, value in changes.items():
       if hasattr(device, key):
@@ -72,6 +97,9 @@ class DeviceStore:
     return device
 
   def delete(self, device_id: str) -> None:
+    """
+    Remove a device from the store.
+    """
     del self._devices[device_id]
 
 

@@ -18,6 +18,15 @@ class TuyaOutletHandler:
   """
 
   async def toggle(self, device: Device) -> dict[str, Any]:
+    """
+    Toggle the power switch of a Tuya outlet device on/off.
+    
+    Args:
+        device (Device): The Device model instance to operate on.
+        
+    Returns:
+        dict[str, Any]: Field updates to apply to the device store.
+    """
     tuya_device = TuyaDevice(
       name=device.name,
       tuya_device_id=device.tuya_device_id,
@@ -32,6 +41,15 @@ class TuyaOutletHandler:
     }
 
   async def refresh(self, device: Device) -> dict[str, Any]:
+    """
+    Perform a reachability ping check and query the Tuya Cloud status endpoint.
+    
+    Args:
+        device (Device): The Device model instance.
+        
+    Returns:
+        dict[str, Any]: Field updates containing reachability status and switch state.
+    """
     updates: dict[str, Any] = {}
 
     # 1. Ping IP for network reachability

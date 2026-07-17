@@ -1,3 +1,6 @@
+"""
+Entry point for starting the FastAPI application server using uvicorn.
+"""
 from dotenv import load_dotenv
 from pathlib import Path
 import sys

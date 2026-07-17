@@ -1,3 +1,6 @@
+"""
+Registration registry for mapping device types to their respective device handlers.
+"""
 from __future__ import annotations
 
 from sc_device_hub.models import DeviceType

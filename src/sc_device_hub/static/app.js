@@ -117,6 +117,7 @@ function renderDevice(device) {
   return node;
 }
 
+// Fetch all devices from the API, render each, and populate the dashboard list
 async function loadDevices() {
   const response = await fetch('/api/v1/devices');
   if (!response.ok) {
@@ -131,6 +132,7 @@ async function loadDevices() {
   return devices;
 }
 
+// Generic helper to post an action (e.g. ping, refresh) for a device, and reload the device list
 async function performAction(url, successMessage, button = null) {
   const originalText = button ? button.textContent : '';
   if (button) {
@@ -154,6 +156,7 @@ async function performAction(url, successMessage, button = null) {
   }
 }
 
+// Trigger concurrent status refresh for all registered devices on the backend
 async function refreshAllDevices() {
   const originalText = refreshAllButton.textContent;
   try {

@@ -7,6 +7,9 @@ import socket
 
 
 def _validate_ip_or_host(value: str) -> str:
+  """
+  Validate that a value is a valid IP address or hostname.
+  """
   try:
     ipaddress.ip_address(value)
     return value
@@ -17,6 +20,9 @@ def _validate_ip_or_host(value: str) -> str:
 
 
 async def _tcp_probe(host: str, timeout_seconds: float) -> tuple[bool, str]:
+  """
+  Perform a fallback TCP probe on port 80 if the ping command line utility is not present.
+  """
   def probe() -> tuple[bool, str]:
     try:
       with socket.create_connection((host, 80), timeout=timeout_seconds):
@@ -28,6 +34,10 @@ async def _tcp_probe(host: str, timeout_seconds: float) -> tuple[bool, str]:
 
 
 async def ping_host(host: str, timeout_seconds: float = 1.5) -> tuple[bool, str]:
+  """
+  Execute an ICMP ping command to verify if a host/IP is reachable on the network.
+  Falls back to a TCP port 80 socket connection probe if the ping command utility is missing.
+  """
   _validate_ip_or_host(host)
   command = ["ping", "-c", "1", "-W", str(max(1, int(timeout_seconds))), host]
   if platform.system().lower().startswith("win"):

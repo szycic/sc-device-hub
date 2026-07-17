@@ -15,6 +15,9 @@ class PingDeviceHandler:
   """
 
   async def toggle(self, device: Device) -> dict[str, Any]:
+    """
+    Toggling is unsupported for ping-only devices.
+    """
     message = f"{device.name} does not support toggling"
     return {
       "last_action": message,
@@ -22,6 +25,12 @@ class PingDeviceHandler:
     }
 
   async def refresh(self, device: Device) -> dict[str, Any]:
+    """
+    Refresh the status of the ping device by executing a reachability ICMP ping.
+    
+    Returns:
+        dict[str, Any]: The updated reachability status and log message.
+    """
     if not device.ip_address:
       return {"last_message": "No IP address configured – cannot ping"}
 

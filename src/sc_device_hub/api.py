@@ -20,11 +20,17 @@ def _now_iso() -> str:
 
 @api_v1_router.get("/devices")
 async def list_devices() -> list[dict[str, Any]]:
+  """
+  Retrieve a list of all devices registered in the system.
+  """
   return [device.to_payload() for device in store.list()]
 
 
 @api_v1_router.get("/devices/{device_id}")
 async def get_device(device_id: str) -> dict[str, Any]:
+  """
+  Retrieve the payload details of a specific device by its ID.
+  """
   try:
     return store.get(device_id).to_payload()
   except KeyError as exc:
@@ -71,6 +77,9 @@ async def refresh_ping(device_id: str) -> dict[str, Any]:
 
 @api_v1_router.post("/devices/{device_id}/toggle")
 async def toggle_device(device_id: str) -> dict[str, Any]:
+  """
+  Toggle the power switch state of a specific device.
+  """
   try:
     device = store.get(device_id)
   except KeyError as exc:
@@ -103,6 +112,9 @@ async def refresh_device(device_id: str) -> dict[str, Any]:
 
 @api_v1_router.get("/status")
 async def api_status() -> dict[str, Any]:
+  """
+  Retrieve the status of the overall Device Hub service.
+  """
   return {
     "service": "sc-device-hub",
     "devices": len(store.list()),

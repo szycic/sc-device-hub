@@ -14,6 +14,9 @@ class ManualDeviceHandler:
   """
 
   async def toggle(self, device: Device) -> dict[str, Any]:
+    """
+    Toggle the switch state of a manual device locally.
+    """
     new_state = not device.is_on
     action = f"{device.name} turned {'on' if new_state else 'off'}"
     return {
@@ -23,4 +26,7 @@ class ManualDeviceHandler:
     }
 
   async def refresh(self, device: Device) -> dict[str, Any]:
+    """
+    A manual device does not support automatic cloud status refreshing.
+    """
     return {"last_message": "Manual device – no automatic refresh available"}
