@@ -24,6 +24,6 @@ class DeviceHandler(Protocol):
     Refresh the device's current status.
 
     Returns a dict of field updates to apply to the store
-    (e.g. ``{"state": DeviceState.online, "is_on": False, "last_message": "..."}``)
+    (e.g. ``{"status": DeviceStatus.online, "is_on": False, "last_message": "..."}``)
     """
     ...

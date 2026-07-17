@@ -5,13 +5,13 @@ const deviceCount = document.getElementById('device-count');
 const lastRefresh = document.getElementById('last-refresh');
 const refreshAllButton = document.getElementById('refresh-all');
 
-const stateLabels = {
+const statusLabels = {
   online: 'Online',
   offline: 'Offline',
   unknown: 'Unknown',
 };
 
-const statusBadgeRenderers = {
+const stateBadgeRenderers = {
   tuya_outlet: (device) => ({
     text: device.is_on ? 'On' : 'Off',
     key: device.is_on ? 'on' : 'off',
@@ -30,9 +30,9 @@ function renderDevice(device) {
   const row = node.querySelector('.device-row');
   const name = node.querySelector('.device-name');
   const id = node.querySelector('.device-id');
-  const state = node.querySelector('.device-state');
-  const status = node.querySelector('.device-status');
   const typeBadge = node.querySelector('.device-type-badge');
+  const statusBadge = node.querySelector('.device-status');
+  const stateBadge = node.querySelector('.device-state');
   const meta = node.querySelector('.device-meta');
   const note = node.querySelector('.device-note');
   const refreshAction = node.querySelector('.refresh-action');
@@ -48,10 +48,10 @@ function renderDevice(device) {
 
   name.textContent = device.name;
   id.textContent = device.id;
-  state.textContent = stateLabels[device.state] || device.state;
-  state.dataset.state = device.state;
   typeBadge.textContent = device.type.replace(/_/g, ' ');
   typeBadge.dataset.type = device.type;
+  statusBadge.textContent = statusLabels[device.status] || device.status;
+  statusBadge.dataset.status = device.status;
 
   const metaParts = [
     device.ip_address ? `IP: ${device.ip_address}` : 'No IP configured'
@@ -64,20 +64,20 @@ function renderDevice(device) {
 
   note.textContent = device.last_message || device.last_action || 'No recent activity';
 
-  const renderer = statusBadgeRenderers[device.type];
-  const statusInfo = renderer ? renderer(device) : null;
-  if (statusInfo) {
-    status.textContent = statusInfo.text;
-    status.dataset.statusKey = statusInfo.key;
-    status.hidden = false;
+  const renderer = stateBadgeRenderers[device.type];
+  const stateInfo = renderer ? renderer(device) : null;
+  if (stateInfo) {
+    stateBadge.textContent = stateInfo.text;
+    stateBadge.dataset.state = stateInfo.key;
+    stateBadge.hidden = false;
   } else {
-    status.hidden = true;
+    stateBadge.hidden = true;
   }
 
   pingAction.hidden = !device.ip_address;
   toggleAction.hidden = !device.can_toggle;
 
-  row.dataset.state = device.state;
+  row.dataset.status = device.status;
 
   pingAction.addEventListener('click', async () => {
     await performAction(`/api/v1/devices/${device.id}/ping`, `${device.name} pinged`, pingAction);
@@ -88,8 +88,6 @@ function renderDevice(device) {
   });
 
   if (device.can_toggle) {
-    const TOGGLE_SETTLE_MS = 1500;
-
     toggleAction.addEventListener('click', async () => {
       const originalText = toggleAction.textContent;
       try {
@@ -100,12 +98,13 @@ function renderDevice(device) {
         const togglePayload = await toggleRes.json();
         if (!toggleRes.ok) throw new Error(togglePayload.detail || 'Toggle failed');
 
-        showMessage(`${device.name} toggled – refreshing…`, 'info');
-        await new Promise((resolve) => setTimeout(resolve, TOGGLE_SETTLE_MS));
-        await fetch(`/api/v1/devices/${device.id}/refresh`, { method: 'POST' });
-
         showMessage(`${device.name} toggled`, 'success');
-        await loadDevices();
+
+        const existingRow = deviceList.querySelector(`[data-device-id="${device.id}"]`);
+        if (existingRow) {
+          const newFragment = renderDevice(togglePayload);
+          deviceList.replaceChild(newFragment, existingRow);
+        }
       } catch (error) {
         showMessage(error.message, 'error');
         toggleAction.disabled = false;

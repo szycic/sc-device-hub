@@ -235,16 +235,16 @@ button:disabled {
   transition: border-left-color 0.2s ease, background-color 0.2s ease;
 }
 
-.device-row[data-state='online'] {
+.device-row[data-status='online'] {
   border-left-color: var(--success);
 }
 
-.device-row[data-state='offline'] {
+.device-row[data-status='offline'] {
   border-left-color: var(--error);
   background: rgba(255, 107, 138, 0.01);
 }
 
-.device-row[data-state='unknown'] {
+.device-row[data-status='unknown'] {
   border-left-color: var(--muted);
 }
 
@@ -286,25 +286,25 @@ button:disabled {
   opacity: 0.8;
 }
 
-.badge[data-state='online'] {
+.badge[data-status='online'] {
   color: var(--success);
 }
 
-.badge[data-state='offline'] {
+.badge[data-status='offline'] {
   color: var(--error);
 }
 
-.badge[data-state='unknown'] {
+.badge[data-status='unknown'] {
   color: var(--muted);
 }
 
 /* Secondary status badge (on/off switch state, etc.) */
-.badge[data-status-key='on'] {
+.badge[data-state='on'] {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.12);
 }
 
-.badge[data-status-key='off'] {
+.badge[data-state='off'] {
   color: var(--muted);
   background: rgba(148, 163, 199, 0.08);
 }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sc_device_hub.models import Device, DeviceState
+from sc_device_hub.models import Device, DeviceStatus
 from sc_device_hub.utils import ping_host
 
 
@@ -29,6 +29,6 @@ class PingDeviceHandler:
     from datetime import datetime
     time_str = datetime.now().strftime("%H:%M:%S")
     return {
-      "state": DeviceState.online if reachable else DeviceState.offline,
+      "status": DeviceStatus.online if reachable else DeviceStatus.offline,
       "last_message": f"Refreshed at {time_str}",
     }

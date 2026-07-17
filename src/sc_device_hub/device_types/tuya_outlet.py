@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from sc_device_hub.models import Device, DeviceState
+from sc_device_hub.models import Device, DeviceStatus
 from sc_device_hub.integrations.tuya import TuyaControlError, TuyaDevice
 from sc_device_hub.utils import ping_host
 
@@ -37,7 +37,7 @@ class TuyaOutletHandler:
     # 1. Ping IP for network reachability
     if device.ip_address:
       reachable, ping_msg = await ping_host(device.ip_address)
-      updates["state"] = DeviceState.online if reachable else DeviceState.offline
+      updates["status"] = DeviceStatus.online if reachable else DeviceStatus.offline
 
     # 2. Query Tuya Cloud for current switch state
     try:

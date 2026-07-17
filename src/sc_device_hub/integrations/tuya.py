@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 
 import tinytuya
@@ -64,6 +65,16 @@ class TuyaDevice:
         raise TuyaControlError(
           f"Failed to set state for {self.name}: {command.get('msg', 'Unknown error')}"
         )
+      
+      for _ in range(5):
+        time.sleep(0.3)
+        try:
+          self.refresh()
+          if self.is_on == state:
+            break
+        except Exception:
+          pass
+
       return f"{self.name} turned {'on' if state else 'off'}"
     except Exception as exc:
       raise TuyaControlError(f"Failed to set state for {self.name}: {exc}") from exc

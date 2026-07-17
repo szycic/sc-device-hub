@@ -57,12 +57,12 @@ async def refresh_ping(device_id: str) -> dict[str, Any]:
     raise HTTPException(status_code=400, detail="This device has no IP address to ping")
 
   from sc_device_hub.utils import ping_host
-  from sc_device_hub.models import DeviceState
+  from sc_device_hub.models import DeviceStatus
 
   reachable, message = await ping_host(device.ip_address)
   store.update(
     device_id,
-    state=DeviceState.online if reachable else DeviceState.offline,
+    status=DeviceStatus.online if reachable else DeviceStatus.offline,
     last_seen=_now_iso(),
     last_message=message,
   )

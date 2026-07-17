@@ -16,7 +16,7 @@ class DeviceType(str, Enum):
   manual = "manual"
 
 
-class DeviceState(str, Enum):
+class DeviceStatus(str, Enum):
   online = "online"
   offline = "offline"
   unknown = "unknown"
@@ -29,7 +29,7 @@ class Device:
   ip_address: str | None = None
   tuya_device_id: str | None = None
   is_on: bool = False
-  state: DeviceState = DeviceState.unknown
+  status: DeviceStatus = DeviceStatus.unknown
   last_seen: str | None = None
   last_action: str | None = None
   last_message: str | None = None
@@ -38,7 +38,7 @@ class Device:
   def to_payload(self) -> dict[str, Any]:
     payload = asdict(self)
     payload["type"] = self.type.value
-    payload["state"] = self.state.value
+    payload["status"] = self.status.value
     payload["can_toggle"] = self.can_toggle
     return payload
 
@@ -146,7 +146,7 @@ def seed_devices() -> None:
       ip_address=item.get("ip_address"),
       tuya_device_id=item.get("tuya_device_id"),
       is_on=item.get("is_on", False),
-      state=DeviceState(item.get("state", "unknown")),
+      status=DeviceStatus(item.get("status") or item.get("state") or "unknown"),
       last_seen=item.get("last_seen"),
       last_action=item.get("last_action"),
       last_message=item.get("last_message")
