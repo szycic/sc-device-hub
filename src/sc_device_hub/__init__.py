@@ -1,4 +1,4 @@
-"""
-sc_device_hub package.
-An application for monitoring and controlling home devices.
+"""SC Device Hub
+
+A package for monitoring and controlling home devices.
 """
